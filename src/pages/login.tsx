@@ -58,7 +58,7 @@ export default function Login() {
           sessionStorage.setItem('token', data.token);
         }
         
-        router.push('/dashboard');
+        router.push('/product');
       }
 
     } catch (error) {
