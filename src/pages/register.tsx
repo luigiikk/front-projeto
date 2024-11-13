@@ -6,27 +6,46 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
 
     try {
-      const response = await fetch('/api/user', {
+      const response = await fetch('http://localhost:5555/users', {
         method: 'POST',
+        credentials: 'include', 
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ name, email, password }), 
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`Erro: ${response.status}`);
+        throw new Error(data.message || `Erro: ${response.status}`);
       }
 
+      setName('');
+      setEmail('');
+      setPassword('');
+      
       alert('Usuário registrado com sucesso!');
+
+      
     } catch (error) {
       console.error('Erro ao tentar registrar:', error);
-      setErrorMessage('Ocorreu um erro. Tente novamente mais tarde.');
+      setErrorMessage(
+        error instanceof Error 
+          ? error.message 
+          : 'Ocorreu um erro. Tente novamente mais tarde.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,9 +61,10 @@ export default function Register() {
               type="text"
               id="name"
               placeholder="Digite seu nome"
-              className="border rounded-md p-2"
+              className="border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -55,33 +75,68 @@ export default function Register() {
               type="email"
               id="email"
               placeholder="Digite seu e-mail"
-              className="border rounded-md p-2"
+              className="border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
 
-          {/* Campo de Senha */}
           <div className="flex flex-col space-y-2">
             <label className="text-sm font-semibold" htmlFor="password">Senha</label>
             <input
               type="password"
               id="password"
               placeholder="Crie sua senha"
-              className="border rounded-md p-2"
+              className="border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
+              minLength={6}
             />
           </div>
 
           {errorMessage && (
-            <p className="text-red-500 text-sm">{errorMessage}</p>
+            <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{errorMessage}</p>
           )}
 
-          <button type="submit" className="bg-red-500 text-white font-bold py-2 rounded-md hover:bg-red-600 transition">
-            Registrar
+          <button 
+            type="submit" 
+            className={`
+              bg-red-500 text-white font-bold py-2 rounded-md
+              hover:bg-red-600 transition
+              disabled:opacity-50 disabled:cursor-not-allowed
+              flex items-center justify-center
+            `}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <svg 
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24"
+                >
+                  <circle 
+                    className="opacity-25" 
+                    cx="12" 
+                    cy="12" 
+                    r="10" 
+                    stroke="currentColor" 
+                    strokeWidth="4"
+                  />
+                  <path 
+                    className="opacity-75" 
+                    fill="currentColor" 
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Registrando...
+              </>
+            ) : 'Registrar'}
           </button>
         </form>
       </div>
