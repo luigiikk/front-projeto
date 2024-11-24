@@ -1,6 +1,8 @@
-"use client";
 import { useEffect, useState } from "react";
 import "../app/globals.css";
+import Modal from "../components/modal";
+import ModalPedidos from "../components/ModalPedidos";
+
 interface Product {
   name: string;
   description: string;
@@ -14,11 +16,23 @@ interface User {
   name?: string;
 }
 
+interface Pedido {
+  id: string;
+  items: string[];
+  total: number;
+  status: string;
+}
+
 export default function Productos() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pedidosModalOpen, setPedidosModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   useEffect(() => {
     const token =
@@ -26,6 +40,7 @@ export default function Productos() {
 
     if (token) {
       fetchUserInfo(token);
+      fetchPedidos(token); 
     }
 
     fetchProducts();
@@ -49,6 +64,24 @@ export default function Productos() {
     }
   };
 
+  const fetchPedidos = async (token: string) => {
+    try {
+      const response = await fetch("http://localhost:5555/user/orders", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const pedidosData: Pedido[] = await response.json();
+        setPedidos(pedidosData);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar pedidos:", error);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
       const token =
@@ -63,9 +96,18 @@ export default function Productos() {
       if (!response.ok) {
         throw new Error("Erro ao carregar produtos");
       }
-      const data = await response.json();
+      const data: Product[] = await response.json();
       setProducts(data);
-      console.log(data);
+
+      
+      const uniqueCategories = Array.from(
+        new Set(
+          data
+            .map((product) => product.category?.trim()) 
+            .filter((category) => category && isNaN(Number(category))) 
+        )
+      );
+      setCategories(uniqueCategories);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     } finally {
@@ -74,14 +116,15 @@ export default function Productos() {
   };
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (selectedCategory === "" || product.category === selectedCategory)
   );
 
   const userName = user?.name || user?.email?.split("@")[0] || "Usuário";
 
   return (
     <div className="bg-gray-100 min-h-screen p-4">
-      <header className="flex items-center justify-between bg-white p-4 shadow-md ">
+      <header className="flex items-center justify-between bg-white p-4 shadow-md">
         <div className="flex items-center space-x-4 w-full m-2">
           <img
             src="/images/fire-red-dragon-logo-vector_10559616.png"
@@ -98,10 +141,16 @@ export default function Productos() {
         </div>
 
         <div className="flex space-x-4">
-          <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            onClick={() => setPedidosModalOpen(true)}
+          >
             Pedidos
           </button>
-          <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            onClick={() => setModalOpen(true)}
+          >
             Categorias
           </button>
           <div className="flex items-center space-x-2">
@@ -142,6 +191,18 @@ export default function Productos() {
           </div>
         )}
       </main>
+
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        categories={categories}
+        onSelectCategory={setSelectedCategory}
+      />
+      <ModalPedidos
+        isOpen={pedidosModalOpen}
+        onClose={() => setPedidosModalOpen(false)}
+        pedidos={pedidos}
+      />
     </div>
   );
 }
