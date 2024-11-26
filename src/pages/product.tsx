@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "../app/globals.css";
 import Modal from "../components/modal";
 import ModalPedidos from "../components/ModalPedidos";
+import ModalProduto from "../components/modalProduct";
 
 interface Product {
   name: string;
@@ -33,6 +34,8 @@ export default function Productos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [pedidosModalOpen, setPedidosModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productModalOpen, setProductModalOpen] = useState(false);
 
   useEffect(() => {
     const token =
@@ -40,7 +43,7 @@ export default function Productos() {
 
     if (token) {
       fetchUserInfo(token);
-      fetchPedidos(token); 
+      fetchPedidos(token);
     }
 
     fetchProducts();
@@ -99,12 +102,11 @@ export default function Productos() {
       const data: Product[] = await response.json();
       setProducts(data);
 
-      
       const uniqueCategories = Array.from(
         new Set(
           data
-            .map((product) => product.category?.trim()) 
-            .filter((category) => category && isNaN(Number(category))) 
+            .map((product) => product.category?.trim())
+            .filter((category) => category && isNaN(Number(category)))
         )
       );
       setCategories(uniqueCategories);
@@ -183,8 +185,14 @@ export default function Productos() {
                 <p className="text-xl font-bold text-red-500">
                   R$ {product.price.toFixed(2)}
                 </p>
-                <button className="bg-red-500 text-white py-2 px-4 mt-4 rounded-md hover:bg-red-600">
-                  Comprar Agora
+                <button
+                  className="bg-red-500 text-white py-2 px-4 mt-4 rounded-md hover:bg-red-600"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setProductModalOpen(true);
+                  }}
+                >
+                  Ver Detalhes
                 </button>
               </div>
             ))}
@@ -202,6 +210,11 @@ export default function Productos() {
         isOpen={pedidosModalOpen}
         onClose={() => setPedidosModalOpen(false)}
         pedidos={pedidos}
+      />
+      <ModalProduto
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
+        product={selectedProduct}
       />
     </div>
   );

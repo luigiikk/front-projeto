@@ -16,7 +16,7 @@ export default function Modal({
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
-      document.body.style.overflow = "auto"; // Reseta ao desmontar
+      document.body.style.overflow = "auto"; 
     };
   }, [isOpen]);
 
@@ -32,7 +32,7 @@ export default function Modal({
     >
       <div
         className="bg-white w-96 p-6 rounded-lg shadow-lg"
-        onClick={(e) => e.stopPropagation()} // Impede fechamento ao clicar no modal
+        onClick={(e) => e.stopPropagation()} 
       >
         <h2 id="modal-title" className="text-xl font-bold mb-4">
           Escolha uma Categoria
