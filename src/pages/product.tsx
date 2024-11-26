@@ -74,7 +74,7 @@ export default function Productos() {
   };
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) 
   );
 
   const userName = user?.name || user?.email?.split("@")[0] || "Usuário";
@@ -97,7 +97,7 @@ export default function Productos() {
           />
         </div>
 
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 sm:">
           <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
             Pedidos
           </button>
