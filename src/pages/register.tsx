@@ -68,7 +68,6 @@ export default function Register() {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4">
       <div className="bg-white shadow-xl rounded-xl w-full max-w-md p-6 sm:p-8 space-y-6 transform transition-all duration-300 hover:shadow-2xl">
-
         <div className="flex justify-center mb-6">
           <img
             src="/images/fire-red-dragon-logo-vector_10559616.png"
@@ -87,7 +86,6 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleRegister} className="space-y-6">
-
           <div className="space-y-2">
             <label
               className="text-sm font-semibold text-gray-700"

@@ -4,12 +4,18 @@ import Modal from "../components/modal";
 import ModalPedidos from "../components/ModalPedidos";
 import ModalProduto from "../components/modalProduct";
 
+interface Category {
+  _id: string;
+  name: string;
+}
+
 interface Product {
   name: string;
   description: string;
   imagePath: string;
   price: number;
   category: string;
+  categoryName?: string;
 }
 
 interface User {
@@ -26,7 +32,7 @@ interface Pedido {
 
 export default function Productos() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,7 +53,53 @@ export default function Productos() {
     }
 
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch("http://localhost:5555/categories", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao carregar categorias");
+      }
+
+      const categoriesData: Category[] = await response.json();
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Erro ao carregar categorias:", error);
+    }
+  };
+  const fetchProductsByCategory = async (categoryId: string) => {
+    try {
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        `http://localhost:5555/categories/${categoryId}/products`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao carregar produtos da categoria");
+      }
+
+      const data: Product[] = await response.json();
+    } catch (error) {
+      console.error("Erro ao carregar produtos da categoria:", error);
+    }
+  };
 
   const fetchUserInfo = async (token: string) => {
     try {
@@ -100,16 +152,12 @@ export default function Productos() {
         throw new Error("Erro ao carregar produtos");
       }
       const data: Product[] = await response.json();
-      setProducts(data);
 
-      const uniqueCategories = Array.from(
-        new Set(
-          data
-            .map((product) => product.category?.trim())
-            .filter((category) => category && isNaN(Number(category)))
-        )
-      );
-      setCategories(uniqueCategories);
+      const productsWithCategoryNames = data.map((product) => ({
+        ...product,
+      }));
+
+      setProducts(productsWithCategoryNames);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     } finally {
@@ -117,10 +165,15 @@ export default function Productos() {
     }
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) 
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCategory === "" || product.category === selectedCategory)
   );
-
+  const clearFilter = () => {
+    setSelectedCategory("");
+    fetchProducts();
+  };
   const userName = user?.name || user?.email?.split("@")[0] || "Usuário";
 
   return (
@@ -158,6 +211,39 @@ export default function Productos() {
       </header>
 
       <main className="mt-6">
+        {(selectedCategory || searchTerm) && (
+          <div className="mb-4 flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {selectedCategory && (
+                <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full flex items-center space-x-2">
+                  <span>
+                    Categoria:{" "}
+                    {categories.find((c) => c._id === selectedCategory)?.name}
+                  </span>
+                  <button
+                    onClick={clearFilter}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {searchTerm && (
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center space-x-2">
+                  <span>Busca: {searchTerm}</span>
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <h2 className="text-2xl font-bold mb-4">Produtos</h2>
         {loading ? (
           <div className="text-center py-8">Carregando produtos...</div>
@@ -174,7 +260,10 @@ export default function Productos() {
                   className="w-32 h-32 object-cover mb-4"
                 />
                 <h3 className="font-semibold text-lg">{product.name}</h3>
-                <p className="text-sm text-gray-500">{product.category}</p>
+                <p className="text-sm text-gray-500">
+                  {categories.find((c) => c._id === product.category)?.name ||
+                    product.category}
+                </p>
                 <p className="text-sm text-gray-600 text-center mb-2">
                   {product.description}
                 </p>
@@ -200,7 +289,11 @@ export default function Productos() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         categories={categories}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={(categoryId: string) => {
+          setSelectedCategory(categoryId);
+          fetchProductsByCategory(categoryId);
+          setModalOpen(false);
+        }}
       />
       <ModalPedidos
         isOpen={pedidosModalOpen}
@@ -211,6 +304,7 @@ export default function Productos() {
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
         product={selectedProduct}
+        categories={categories} 
       />
     </div>
   );

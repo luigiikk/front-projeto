@@ -21,7 +21,7 @@ export default function ModalPedidos({
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
-      document.body.style.overflow = "auto"; 
+      document.body.style.overflow = "auto";
     };
   }, [isOpen]);
 
@@ -37,7 +37,7 @@ export default function ModalPedidos({
     >
       <div
         className="bg-white w-96 p-6 rounded-lg shadow-lg overflow-y-auto max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()} 
+        onClick={(e) => e.stopPropagation()}
       >
         <h2 id="modal-title" className="text-xl font-bold mb-4">
           Meus Pedidos
@@ -56,7 +56,10 @@ export default function ModalPedidos({
                   Status: <span className="font-medium">{pedido.status}</span>
                 </p>
                 <p className="text-sm text-gray-600">
-                  Total: <span className="font-medium">R$ {pedido.total.toFixed(2)}</span>
+                  Total:{" "}
+                  <span className="font-medium">
+                    R$ {pedido.total.toFixed(2)}
+                  </span>
                 </p>
                 <div className="mt-2">
                   <h4 className="text-sm font-semibold">Itens:</h4>
