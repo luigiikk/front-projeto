@@ -3,6 +3,7 @@ import "../app/globals.css";
 import Modal from "../components/modal";
 import ModalPedidos from "../components/ModalPedidos";
 import ModalProduto from "../components/modalProduct";
+import CartModal from "@/components/CartModal";
 
 interface Category {
   _id: string;
@@ -10,12 +11,29 @@ interface Category {
 }
 
 interface Product {
+  _id: string;
   name: string;
   description: string;
   imagePath: string;
   price: number;
   category: string;
   categoryName?: string;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+}
+
+interface Order {
+  _id: string;
+  table: string;
+  status: "WAITING" | "IN_PRODUCTION" | "DONE";
+  createAt: Date;
+  products: {
+    product: string;
+    quantity: number;
+  }[];
+  total: number;
 }
 
 interface User {
@@ -31,6 +49,7 @@ interface Pedido {
 }
 
 export default function Productos() {
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -42,6 +61,7 @@ export default function Productos() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [cartModalOpen, setCartModalOpen] = useState(false);
 
   useEffect(() => {
     const token =
@@ -77,6 +97,73 @@ export default function Productos() {
       console.error("Erro ao carregar categorias:", error);
     }
   };
+
+  const addToCart = (product: Product) => {
+    setCart((currentCart) => {
+      const existingProduct = currentCart.find(
+        (item) => item._id === product._id
+      );
+      if (existingProduct) {
+        return currentCart.map((item) =>
+          item._id === product._id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...currentCart, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((currentCart) =>
+      currentCart.filter((item) => item._id !== productId)
+    );
+  };
+
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    setCart((currentCart) =>
+      currentCart
+        .map((item) =>
+          item._id === productId ? { ...item, quantity: newQuantity } : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const calculateTotal = () => {
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+  const createOrder = async () => {
+    try {
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
+
+      const response = await fetch("http://localhost:5555/orders", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          products: cart.map((item) => ({
+            product: item._id,
+            quantity: item.quantity,
+          })),
+          total: calculateTotal(),
+        }),
+      });
+
+      if (response.ok) {
+        const newOrder = await response.json();
+        setPedidos([...pedidos, newOrder]);
+        setCart([]); 
+        setCartModalOpen(false); 
+      }
+    } catch (error) {
+      console.error("Erro ao criar pedido:", error);
+    }
+  };
+
   const fetchProductsByCategory = async (categoryId: string) => {
     try {
       const token =
@@ -204,6 +291,12 @@ export default function Productos() {
           >
             Categorias
           </button>
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            onClick={() => setCartModalOpen(true)}
+          >
+            Carrinho ({cart.length})
+          </button>
           <div className="flex items-center space-x-2">
             <span className="text-gray-700 font-medium">{userName}</span>
           </div>
@@ -279,6 +372,15 @@ export default function Productos() {
                 >
                   Ver Detalhes
                 </button>
+                <button
+                  className="bg-red-500 text-white py-2 px-4 mt-4 rounded-md hover:bg-red-600"
+                  onClick={() => {
+                    addToCart(product);
+                    setProductModalOpen(false);
+                  }}
+                >
+                  Adicionar ao Carrinho
+                </button>
               </div>
             ))}
           </div>
@@ -295,16 +397,19 @@ export default function Productos() {
           setModalOpen(false);
         }}
       />
-      <ModalPedidos
-        isOpen={pedidosModalOpen}
-        onClose={() => setPedidosModalOpen(false)}
-        pedidos={pedidos}
+      <CartModal
+        isOpen={cartModalOpen}
+        onClose={() => setCartModalOpen(false)}
+        cart={cart}
+        onRemove={removeFromCart}
+        onUpdateQuantity={updateQuantity}
+        onCreateOrder={createOrder}
       />
       <ModalProduto
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
         product={selectedProduct}
-        categories={categories} 
+        categories={categories}
       />
     </div>
   );
