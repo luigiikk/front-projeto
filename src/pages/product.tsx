@@ -30,7 +30,7 @@ interface Order {
   status: "WAITING" | "IN_PRODUCTION" | "DONE";
   createAt: Date;
   products: {
-    product: string;
+    product: Product;  // Change from string to full Product object
     quantity: number;
   }[];
   total: number;
@@ -41,18 +41,11 @@ interface User {
   name?: string;
 }
 
-interface Pedido {
-  id: string;
-  items: string[];
-  total: number;
-  status: string;
-}
-
 export default function Productos() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -133,37 +126,7 @@ export default function Productos() {
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
-  const createOrder = async () => {
-    try {
-      const token =
-        localStorage.getItem("token") || sessionStorage.getItem("token");
-
-      const response = await fetch("http://localhost:5555/orders", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          products: cart.map((item) => ({
-            product: item._id,
-            quantity: item.quantity,
-          })),
-          total: calculateTotal(),
-        }),
-      });
-
-      if (response.ok) {
-        const newOrder = await response.json();
-        setPedidos([...pedidos, newOrder]);
-        setCart([]); 
-        setCartModalOpen(false); 
-      }
-    } catch (error) {
-      console.error("Erro ao criar pedido:", error);
-    }
-  };
-
+  
   const fetchProductsByCategory = async (categoryId: string) => {
     try {
       const token =
@@ -214,15 +177,55 @@ export default function Productos() {
           "Content-Type": "application/json",
         },
       });
-
+  
       if (response.ok) {
-        const pedidosData: Pedido[] = await response.json();
+        const pedidosData: Order[] = await response.json();
         setPedidos(pedidosData);
       }
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error);
     }
   };
+
+  const createOrder = async () => {
+    try {
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
+  
+      const response = await fetch("http://localhost:5555/orders", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          table: "1", // Adicione um número de mesa padrão ou faça um campo para selecionar
+          products: cart.map((item) => ({
+            product: item._id,
+            quantity: item.quantity,
+          })),
+          // Removemos o total daqui, pois será calculado no backend
+        }),
+      });
+  
+      if (response.ok) {
+        const newOrder = await response.json();
+  
+        // Atualiza a lista de pedidos imediatamente
+        setPedidos((prevPedidos) => [...prevPedidos, newOrder]);
+  
+        // Limpa o carrinho e fecha o modal do carrinho
+        setCart([]);
+        setCartModalOpen(false);
+  
+        // Opcional: Abre o modal de pedidos para mostrar o novo pedido
+        setPedidosModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Erro ao criar pedido:", error);
+    }
+  };
+  
 
   const fetchProducts = async () => {
     try {
@@ -282,7 +285,10 @@ export default function Productos() {
         </div>
 
         <div className="flex space-x-4 sm:">
-          <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            onClick={() => setPedidosModalOpen(true)}
+          >
             Pedidos
           </button>
           <button
@@ -397,6 +403,12 @@ export default function Productos() {
           setModalOpen(false);
         }}
       />
+      <ModalPedidos
+  isOpen={pedidosModalOpen}
+  onClose={() => setPedidosModalOpen(false)}
+  pedidos={pedidos}
+  products={products}  
+/>
       <CartModal
         isOpen={cartModalOpen}
         onClose={() => setCartModalOpen(false)}

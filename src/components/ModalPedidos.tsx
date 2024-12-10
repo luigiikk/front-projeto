@@ -1,85 +1,103 @@
-import { useEffect } from "react";
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  imagePath: string;
+  price: number;
+  category: string;
+}
 
-interface Pedido {
-  id: string;
-  items: string[];
+interface OrderItem {
+  product: string | Product;  
+  quantity: number;
+}
+
+interface Order {
+  _id: string;
+  table: string;
+  status: 'WAITING' | 'IN_PRODUCTION' | 'DONE';
+  createAt: Date;
+  products: OrderItem[];
   total: number;
-  status: string;
 }
 
 interface ModalPedidosProps {
   isOpen: boolean;
   onClose: () => void;
-  pedidos: Pedido[];
+  pedidos: Order[];
+  products: Product[];
 }
 
-export default function ModalPedidos({
-  isOpen,
-  onClose,
+const ModalPedidos: React.FC<ModalPedidosProps> = ({ 
+  isOpen, 
+  onClose, 
   pedidos,
-}: ModalPedidosProps) {
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen]);
-
+  products
+}) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white w-96 p-6 rounded-lg shadow-lg overflow-y-auto max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="modal-title" className="text-xl font-bold mb-4">
-          Meus Pedidos
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Meus Pedidos</h2>
+          <button 
+            onClick={onClose} 
+            className="text-gray-600 hover:text-gray-900"
+          >
+            ✕
+          </button>
+        </div>
+        
         {pedidos.length === 0 ? (
-          <p className="text-gray-500">Nenhum pedido encontrado.</p>
+          <p className="text-center text-gray-500">Nenhum pedido encontrado</p>
         ) : (
-          <ul className="space-y-4">
+          <div>
             {pedidos.map((pedido) => (
-              <li
-                key={pedido.id}
-                className="p-4 border border-gray-200 rounded-md shadow-sm"
+              <div 
+                key={pedido._id} 
+                className="border-b py-4"
               >
-                <h3 className="font-bold">Pedido #{pedido.id}</h3>
-                <p className="text-sm text-gray-600">
-                  Status: <span className="font-medium">{pedido.status}</span>
-                </p>
-                <p className="text-sm text-gray-600">
-                  Total:{" "}
-                  <span className="font-medium">
-                    R$ {pedido.total.toFixed(2)}
+                <div className="flex justify-between">
+                  <span className="font-medium">Pedido #{pedido._id}</span>
+                  <span 
+                    className={`
+                      px-2 py-1 rounded-full text-sm 
+                      ${pedido.status === 'WAITING' ? 'bg-yellow-100 text-yellow-800' : 
+                        pedido.status === 'IN_PRODUCTION' ? 'bg-blue-100 text-blue-800' : 
+                        'bg-green-100 text-green-800'}`}
+                  >
+                    {pedido.status === 'WAITING' ? 'Aguardando' : 
+                     pedido.status === 'IN_PRODUCTION' ? 'Em Produção' : 
+                     'Concluído'}
                   </span>
-                </p>
-                <div className="mt-2">
-                  <h4 className="text-sm font-semibold">Itens:</h4>
-                  <ul className="text-sm list-disc pl-5 text-gray-600">
-                    {pedido.items.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
                 </div>
-              </li>
+                <div className="mt-2">
+                <p>Total: R$ {(pedido.total || 0).toFixed(2)}</p>
+                  <div className="text-sm text-gray-600">
+                  {pedido.products.map((item) => {
+  // Verifica se é uma string ou um objeto Product
+  const productId = typeof item.product === 'string' 
+    ? item.product 
+    : item.product._id;
+  
+  const product = products.find(p => p._id === productId);
+
+  return (
+    <div key={productId}>
+      {product?.name || 'Produto não encontrado'} (x{item.quantity})
+    </div>
+  );
+})}
+                  </div>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-        <button
-          onClick={onClose}
-          className="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-        >
-          Fechar
-        </button>
       </div>
     </div>
   );
-}
+};
+
+export default ModalPedidos;
