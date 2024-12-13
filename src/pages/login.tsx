@@ -8,11 +8,13 @@ interface User {
   id: string;
   email: string;
   password: string;
+  role: 'user' | 'admin'; 
 }
 
 interface LoginResponse {
   token?: string;
   message?: string;
+  user?: User; 
 }
 
 export default function Login() {
@@ -51,12 +53,19 @@ export default function Login() {
       }
 
       if (data.token) {
+       
         if (rememberMe) {
           localStorage.setItem("token", data.token);
         } else {
           sessionStorage.setItem("token", data.token);
         }
-        router.push("/product");
+
+        
+        if (data.user?.role === 'admin') {
+          router.push("/adm");
+        } else {
+          router.push("/product");
+        }
       }
     } catch (error) {
       console.error("Erro ao tentar fazer login:", error);
@@ -69,6 +78,7 @@ export default function Login() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4">
@@ -189,12 +199,7 @@ export default function Login() {
                 Lembrar usuário?
               </label>
             </div>
-            <Link
-              href="/forgot-password"
-              className="text-sm text-red-500 hover:text-red-600 transition-colors duration-200"
-            >
-              Esqueceu a senha?
-            </Link>
+           
           </div>
 
           {errorMessage && (
